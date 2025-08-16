@@ -17,6 +17,3 @@ import Foundation
     let result = PDFOCRKit.extractText(from: invalidURL)
     #expect(result == "")
 }
-
-// Note: To test with actual PDFs, you would need to add test PDF files to the Resources folder
-// and use Bundle.module.url(forResource:withExtension:) to access them

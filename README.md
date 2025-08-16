@@ -75,21 +75,31 @@ PDFOCRKit uses a sophisticated approach to preserve the spatial layout of text:
 
 ## Example Output
 
-For a PDF with tabular data like:
+For a PDF with tabular data like this academic transcript:
 
+**Original PDF Table:**
 ```
-Name          Age    City
-John Doe      25     New York
-Jane Smith    30     Los Angeles
+Crs Code    Title                           Wgt    Mrk  Grd   CrsAvg
+
+ECE334H1    DIGITAL ELECTRONICS            0.50   77   B+    B
+ECE342H1    COMPUTER HARDWARE              0.50   90   A+    B+
+ECE345H1    ALGORITHMS & DATA STRUCTURES   0.50   78   B+    B+
+ECE421H1    INTRO. TO MACHINE LEARNING     0.50   80   A-    B+
+SPA219Y1    Academic Spanish               1.00   91   A+    B+
 ```
 
-PDFOCRKit will preserve the column alignment:
+**PDFOCRKit Output:**
+```
+Crs Code   Title                           Wgt   Mrk   Grd   CrsAvg
 
+ECE334H1   DIGITAL ELECTRONICS            0.50   77   B+   B
+ECE342H1   COMPUTER HARDWARE              0.50   90   A+   B+
+ECE345H1   ALGORITHMS & DATA STRUCTURES   0.50   78   B+   B+
+ECE421H1   INTRO. TO MACHINE LEARNING     0.50   80   A-   B+
+SPA219Y1   Academic Spanish               1.00   91   A+   B+
 ```
-Name          Age    City
-John Doe      25     New York
-Jane Smith    30     Los Angeles
-```
+
+Notice how PDFOCRKit preserves the column alignment and spacing, making the extracted text maintain the tabular structure from the original PDF.
 
 ## Testing
 
