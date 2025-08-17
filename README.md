@@ -40,10 +40,12 @@ print(extractedText)
 ```swift
 import PDFOCRKit
 
-// Configure OCR options
+// Configure OCR options for better accuracy
 var options = PDFOCROptions()
-options.scale = 1.5              // Rendering scale (default: 2.0)
-options.yTolerance = 15          // Row grouping tolerance (default: 10)
+options.scale = 1.0                    // Lower scale for better symbol recognition (default: 1.5)
+options.yTolerance = 15                // Row grouping tolerance (default: 10)
+options.enableTextCorrection = true    // Enable automatic text corrections (default: true)
+options.minimumConfidence = 0.7        // Higher confidence threshold (default: 0.5)
 
 let extractedText = PDFOCRKit.extractText(from: pdfURL, options: options)
 ```
@@ -70,8 +72,20 @@ PDFOCRKit uses a sophisticated approach to preserve the spatial layout of text:
 
 ### PDFOCROptions
 
-- `scale`: Rendering scale factor for improved OCR accuracy (default: 2.0)
+- `scale`: Rendering scale factor for improved OCR accuracy (default: 1.5)
+  - **1.0-1.2**: Best for PDFs with clear text and symbols like grades (A+, B+, C+)
+  - **1.5-2.0**: Good for small or unclear text
+  - **2.0+**: Use for very poor quality PDFs (may cause symbol misrecognition)
+
 - `yTolerance`: Y-axis tolerance for grouping text into rows in pixels (default: 10)
+
+- `enableTextCorrection`: Enable automatic correction of common OCR errors (default: true)
+  - Fixes common grade misreads: "Ct" → "C+", "Bt" → "B+", etc.
+  - Adds spaces between letters and numbers: "Engineering89" → "Engineering 89"
+
+- `minimumConfidence`: Minimum confidence threshold for accepting OCR results (0.0-1.0, default: 0.5)
+  - Higher values (0.7-0.9) filter out uncertain text but may miss some content
+  - Lower values (0.3-0.5) include more text but may include errors
 
 ## Example Output
 

@@ -23,13 +23,19 @@ import AppKit
 /// Configuration options for PDF OCR processing
 public struct PDFOCROptions {
     /// Rendering scale factor for improved OCR accuracy
-    public var scale: CGFloat = 2.0
+    public var scale: CGFloat = 1.5  // Reduced default for better symbol recognition
     /// Y-axis tolerance for grouping text into rows (in pixels)
     public var yTolerance: CGFloat = 10
+    /// Whether to enable advanced text correction
+    public var enableTextCorrection: Bool = true
+    /// Minimum confidence threshold for text recognition (0.0-1.0)
+    public var minimumConfidence: CGFloat = 0.5
     
-    public init(scale: CGFloat = 2.0, yTolerance: CGFloat = 10) {
+    public init(scale: CGFloat = 1.5, yTolerance: CGFloat = 10, enableTextCorrection: Bool = true, minimumConfidence: CGFloat = 0.5) {
         self.scale = scale
         self.yTolerance = yTolerance
+        self.enableTextCorrection = enableTextCorrection
+        self.minimumConfidence = minimumConfidence
     }
 }
 
@@ -78,7 +84,7 @@ private func ocrPageToText(doc: PDFDocument, pageIndex: Int, options: PDFOCROpti
     }
     
     do {
-        let words = try recognizeWords(in: cgImage)
+        let words = try recognizeWords(in: cgImage, options: options)
         if words.isEmpty {
             return ""
         }
@@ -140,10 +146,10 @@ private struct WordBox {
     var midY: CGFloat { rect.midY }
 }
 
-private func recognizeWords(in cgImage: CGImage) throws -> [WordBox] {
+private func recognizeWords(in cgImage: CGImage, options: PDFOCROptions) throws -> [WordBox] {
     let req = VNRecognizeTextRequest()
     req.recognitionLevel = .accurate
-    req.usesLanguageCorrection = true
+    req.usesLanguageCorrection = options.enableTextCorrection
     
     // Try multiple languages
     if #available(iOS 14.0, macOS 11.0, *) {
@@ -167,15 +173,48 @@ private func recognizeWords(in cgImage: CGImage) throws -> [WordBox] {
     let words = obs.compactMap { o -> WordBox? in
         guard let cand = o.topCandidates(1).first else { return nil }
         
+        // Filter by confidence threshold
+        if cand.confidence < Float(options.minimumConfidence) {
+            return nil
+        }
+        
         let bb = o.boundingBox // normalized (origin bottom-left)
         let rect = CGRect(x: bb.minX * w,
                           y: (1 - bb.maxY) * h,
                           width: bb.width * w,
                           height: bb.height * h)
-        return WordBox(text: cand.string, rect: rect)
+        
+        // Apply text corrections for common OCR errors
+        let correctedText = correctCommonOCRErrors(cand.string)
+        
+        return WordBox(text: correctedText, rect: rect)
     }
     
     return words
+}
+
+// MARK: - Text Correction
+
+private func correctCommonOCRErrors(_ text: String) -> String {
+    var corrected = text
+    
+    // Common grade corrections
+    corrected = corrected.replacingOccurrences(of: "Ct", with: "C+")
+    corrected = corrected.replacingOccurrences(of: "Bt", with: "B+")
+    corrected = corrected.replacingOccurrences(of: "At", with: "A+")
+    corrected = corrected.replacingOccurrences(of: "Dt", with: "D+")
+    
+    // Add space between letters and numbers
+    corrected = corrected.replacingOccurrences(of: #"([A-Za-z])(\d)"#, 
+                                              with: "$1 $2", 
+                                              options: .regularExpression)
+    
+    // Add space between numbers and letters (for cases like "89Engineering")
+    corrected = corrected.replacingOccurrences(of: #"(\d)([A-Za-z])"#, 
+                                              with: "$1 $2", 
+                                              options: .regularExpression)
+    
+    return corrected
 }
 
 private func groupRows(_ words: [WordBox], yTolerance: CGFloat) -> [[WordBox]] {
